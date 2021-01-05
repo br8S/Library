@@ -3,7 +3,6 @@ const app = express(); //creating server
 const expressLayouts = require('express-ejs-layouts'); //ref layout package we installed
 
 const mongoose = require('mongoose');
-const DBHOST;
 
 require("dotenv-flow").config();
 
