@@ -4,7 +4,7 @@ const Author = require('../models/author');
 
 //All authors route 
 router.get('/', async (req,res) => {
-    let searchOptions = {}
+    let searchOptions = {} //variable stores all our search options that were sent
     if (req.query.name != null && req.query.name !== ''){ //here we are adding search functionality
         searchOptions.name = new RegExp(req.query.name, 'i') //i flag means case insensitive
     }

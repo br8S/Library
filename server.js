@@ -23,6 +23,7 @@ mongoose.connection.once('open', () => console.log("Connected successfully to Mo
 
 const indexRouter = require('./routes/index');
 const authorRouter = require('./routes/authors');
+const bookRouter = require('./routes/books');
 
 app.set('view engine', 'ejs'); //state how views will be displayed.. we isntalled ejs
 app.set('views', __dirname + '/views'); //setting where our views will be coming from.. in our case it will be in views folder
@@ -34,6 +35,7 @@ app.use(bodyParser.urlencoded({ limit: '10mb', extended: false })) //order matte
 
 app.use('/', indexRouter);
 app.use('/authors', authorRouter); //essentially everything will be preappended with authors/..
+app.use('/books', bookRouter); 
 
 const PORT = process.env.PORT || 3000; //if for some reason something goes wrong with .env then 4000
 
