@@ -1,18 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Book = require('../models/book');
 const Author = require('../models/author');
 const uploadPath = path.join('public', Book.coverImageBasePath);
 const imageMimeTypes = ['image/jpeg', 'image/png', 'image/gif']
-const upload = multer({
-    dest: uploadPath,
-    fileFilter: (req, file, callback) => {
-        callback(null, imageMimeTypes.includes(file.mimetype))
-    }
-})
+// const upload = multer({
+//     dest: uploadPath,
+//     fileFilter: (req, file, callback) => {
+//         callback(null, imageMimeTypes.includes(file.mimetype))
+//     }
+// })
 
 //All books route 
 router.get('/', async (req,res) => {
@@ -50,35 +49,36 @@ router.get('/new', async (req,res) => {
 }) 
 
 // Create book route
-router.post('/', upload.single('cover'), async (req,res) => { // using '/' bc we are posting to the entire collection
-    const fileName = req.file != null ? req.file.filename : null //req.file is file we are uploading to server.. essentially we are just getting file name from file if it exists
+router.post('/', async (req,res) => { // using '/' bc we are posting to the entire collection
+    //const fileName = req.file != null ? req.file.filename : null //req.file is file we are uploading to server.. essentially we are just getting file name from file if it exists
     const book = new Book({ //we want to create a book obj and populate it using the parameters entered in the form
         title: req.body.title,
         author: req.body.author,
         publishDate: new Date(req.body.publishDate),
         pageCount: req.body.pageCount,
-        coverImageName: fileName,
+        //coverImageName: fileName,
         description: req.body.description
     }) 
+
+    saveCover(book, req.body.cover) //encoded json cover is stored in req.body.cover
 
     try{
         const newBook = await book.save();
         res.redirect('books');
     }
     catch{
-        if (book.coverImageName !== null){
-            removeBookCover(book.coverImageName); //we only want to call this if we actually have a cover image name.. bc if there is no name there is no image to remove
-        }
-        
+        // if (book.coverImageName !== null){
+        //     removeBookCover(book.coverImageName); //we only want to call this if we actually have a cover image name.. bc if there is no name there is no image to remove
+        // }
         renderNewPage(res, book, true);
     }
 }) 
 
-function removeBookCover(fileName){
-    fs.unlink(path.join(uploadPath, fileName), err => { //this will get rid of any file in /public/uploads
-        if (err) console.error(err) //this error is insignificant to the user.. just for us
-    })
-}
+// function removeBookCover(fileName){
+//     fs.unlink(path.join(uploadPath, fileName), err => { //this will get rid of any file in /public/uploads
+//         if (err) console.error(err) //this error is insignificant to the user.. just for us
+//     })
+// }
 
 async function renderNewPage(res, book, hasError = false){
     try{
@@ -92,6 +92,15 @@ async function renderNewPage(res, book, hasError = false){
     }
     catch{
         res.redirect('/books') //if there is any errors we just want it to render /books page
+    }
+}
+
+function saveCover (book, coverEncoded){ //we want to check our cover is valid and if so save it to book.cover
+    if(coverEncoded == null) return //no good
+    const cover = JSON.parse(coverEncoded); //we want cover unencoded.. coverEncoded is just a string that is json  
+    if(cover != null && imageMimeTypes.includes(cover.type)){ //making sure image is correct format ie png jpg
+        book.coverImage = new Buffer.from(cover.data, 'base64'); //allows us to create a buffer from some set of data
+        book.coverImageType = cover.type;
     }
 }
 
