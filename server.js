@@ -2,6 +2,7 @@ const express = require('express'); //ref express package we installed
 const app = express(); //creating server
 const expressLayouts = require('express-ejs-layouts'); //ref layout package we installed
 const bodyParser = require('body-parser');
+const methodOverride = require('method-override');
 
 const mongoose = require('mongoose');
 
@@ -30,6 +31,7 @@ app.set('views', __dirname + '/views'); //setting where our views will be coming
 app.set('layout', 'layouts/layout'); //last we want to hook up express layouts
 //every single file will be put in layout file so we dont have to duplicates
 app.use(expressLayouts);
+app.use(methodOverride('_method'));
 app.use(express.static('public')); //we want to tell express where our public files will be ie style, java, images, etc.
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: false })) //order matters putting this under app.use('/authors', authorRouter); fucks everything
 
