@@ -4,14 +4,9 @@ const path = require('path');
 const fs = require('fs');
 const Book = require('../models/book');
 const Author = require('../models/author');
+const { resolveMx } = require('dns');
 const uploadPath = path.join('public', Book.coverImageBasePath);
 const imageMimeTypes = ['image/jpeg', 'image/png', 'image/gif']
-// const upload = multer({
-//     dest: uploadPath,
-//     fileFilter: (req, file, callback) => {
-//         callback(null, imageMimeTypes.includes(file.mimetype))
-//     }
-// })
 
 //All books route 
 router.get('/', async (req,res) => {
@@ -64,21 +59,86 @@ router.post('/', async (req,res) => { // using '/' bc we are posting to the enti
 
     try{
         const newBook = await book.save();
-        res.redirect('books');
+        res.redirect(`/books/${newBook.id}`);
     }
     catch{
-        // if (book.coverImageName !== null){
-        //     removeBookCover(book.coverImageName); //we only want to call this if we actually have a cover image name.. bc if there is no name there is no image to remove
-        // }
         renderNewPage(res, book, true);
     }
 }) 
 
-// function removeBookCover(fileName){
-//     fs.unlink(path.join(uploadPath, fileName), err => { //this will get rid of any file in /public/uploads
-//         if (err) console.error(err) //this error is insignificant to the user.. just for us
-//     })
-// }
+//Show book route 
+router.get('/:id', async (req, res) => {
+    try{    
+        const book = await Book.findById(req.params.id).populate('author').exec() //w/ out populate it would just be id rather than an actual obj w/ all info.. so this lets us address author name in show.ejs
+        res.render('books/show', { book: book})
+    }
+    catch (err){
+        console.log(err)
+        res.redirect('/')
+    }
+})
+
+//Edit book route 
+router.get('/:id/edit', async (req,res) => {
+    try{
+        const book = await Book.findById(req.params.id) //only need id dont need anymore data
+        renderEditPage(res, book)
+    }
+    catch{
+        res.redirect('/')
+    }
+}) 
+
+// Update book route
+router.put('/:id', async (req,res) => { // using '/' bc we are posting to the entire collection
+    let book 
+
+    try{
+        book = await Book.findById(req.params.id);
+        book.title = req.body.title
+        book.author = req.body.author,
+        book.publishDate = new Date(req.body.publishDate)
+        book.pageCount = req.body.pageCount
+        book.description = req.body.description
+
+        if(req.body.cover != null && req.body.cover !== ''){
+            saveCover(book, req.body.cover);
+        }
+        await book.save()
+        res.redirect(`/books/${book.id}`);
+    }
+    catch (err){
+        console.log(err)
+        if(book != null){
+            renderEditPage(res, book, true);
+        }
+        else{
+            redirect('/');
+        }
+    }
+}) 
+
+//Delete book page
+
+router.delete(':/id', async (req, res) => {
+    let book
+    try{
+        book = await Book.findById(req.params.id)
+        await book.remove()
+        res.redirect('/books')
+    }
+    catch{
+        if(book != null){
+            res.render('books/show', {
+                book: book, 
+                errorMessage: 'Could not remove book'
+            })
+        }
+        else{
+            res.redirect('/')
+        }
+    }
+})
 
 async function renderNewPage(res, book, hasError = false){
     try{
@@ -89,6 +149,21 @@ async function renderNewPage(res, book, hasError = false){
         }
         if (hasError) params.errorMessage = 'Error Creating Book'
         res.render('books/new', params )
+    }
+    catch{
+        res.redirect('/books') //if there is any errors we just want it to render /books page
+    }
+}
+
+async function renderEditPage(res, book, hasError = false){
+    try{
+        const authors = await Author.find({}); //first we want to find all the authors
+        const params = {
+            authors: authors, //passing authors we created and book 
+            book: book
+        }
+        if (hasError) params.errorMessage = 'Error Editing Book'
+        res.render('books/edit', params )
     }
     catch{
         res.redirect('/books') //if there is any errors we just want it to render /books page
